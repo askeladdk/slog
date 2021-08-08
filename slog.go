@@ -112,6 +112,40 @@ func appendInt(dst []byte, i int64, col colorFunc) []byte {
 	return dst
 }
 
+func appendKeyVal(dst []byte, col colorFunc, key, val string, quote bool) []byte {
+	dst = append(dst, ',')
+	dst = appendKey(dst, key, col)
+
+	// string
+	if quote {
+		return appendQuote(dst, val, col)
+	}
+
+	// keyword
+	switch val {
+	case "true", "false", "null":
+		return appendVal(dst, val, col)
+	case "nil":
+		return appendVal(dst, "null", col)
+	}
+
+	// number
+	if strings.ContainsAny(val, "0123456789") {
+		if strings.IndexByte(val, '.') >= 0 {
+			if flt, err := strconv.ParseFloat(val, 64); err == nil {
+				return appendFloat(dst, flt, col)
+			}
+		} else {
+			if i, err := strconv.ParseInt(val, 0, 64); err == nil {
+				return appendInt(dst, i, col)
+			}
+		}
+	}
+
+	// string
+	return appendQuote(dst, val, col)
+}
+
 func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte {
 	dst = append(dst, '{')
 
@@ -180,42 +214,7 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 			i, key, val, quote, ok := scanKeyVals(text)
 			text = text[i:]
 			if ok {
-				dst = append(dst, ',')
-				dst = appendKey(dst, key, col)
-
-				// string
-				if quote {
-					dst = appendQuote(dst, val, col)
-					continue
-				}
-
-				// constant
-				switch val {
-				case "true", "false", "null":
-					dst = appendVal(dst, val, col)
-					continue
-				case "nil":
-					dst = appendVal(dst, "null", col)
-					continue
-				}
-
-				// number
-				if strings.ContainsAny(val, "0123456789") {
-					if strings.IndexByte(val, '.') >= 0 {
-						if flt, err := strconv.ParseFloat(val, 64); err == nil {
-							dst = appendFloat(dst, flt, col)
-							continue
-						}
-					} else {
-						if i, err := strconv.ParseInt(val, 0, 64); err == nil {
-							dst = appendInt(dst, i, col)
-							continue
-						}
-					}
-				}
-
-				// string
-				dst = appendQuote(dst, val, col)
+				dst = appendKeyVal(dst, col, key, val, quote)
 			}
 		}
 	}
