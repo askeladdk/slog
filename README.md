@@ -42,7 +42,7 @@ Use `slog.NewWriter` to create a new writer and attach it to a logger with `SetO
 
 ```go
 log.SetFlags(slog.LstdFlags)
-log.SetOutput(slog.NewWriter(log.Default(), os.StdErr))
+log.SetOutput(slog.NewWriter(os.StdErr, log.Default()))
 log.Println("hello world")
 ```
 
