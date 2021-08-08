@@ -1,4 +1,28 @@
-// Package slog implements structured logging for lazy people.
+// Package slog implements structured logging for lazy gophers.
+//
+// Like the standard logger, slog is configured via flags.
+// It uses all the standard flags and introduces two new ones, Lcolor and Lparsefields.
+//
+// Flag Lcolor colorizes the output if the output writer is detected to be a tty.
+//
+// Flag Lparsefields parses the log message (including prefix if log.Lmsgprefix is set)
+// for key-value pairs and stores them as separate fields in the JSON object.
+// A key-value pair is any fragment of text of the form key=value or key="another value".
+// The key cannot contain spaces and the equals sign cannot be surrounded by spaces.
+// The value can only contain spaces if it is quoted.
+// Slog does not check for duplicate field names.
+//
+// The standard logger produces non-standard timestamps.
+// Slog converts the timestamps to RFC3339 format if the flags
+// log.Ldate, log.Ltime and log.LUTC are all set and stores it in the time field.
+//
+// The prefix, if any, is parsed differently depending on whether log.Lmsgprefix is set.
+// If it is not, then the prefix is trimmed of spaces and punctuation marks and
+// stored in the prfx field. If it is, then it is considered part of the log message.
+// The log message is stored in the mesg field.
+//
+// If flags log.Llongfile or log.Lshortfile are set, slog parses the file name and line number
+// in two separate fields named fnam and flno.
 package slog
 
 import (
