@@ -81,7 +81,7 @@ goos: darwin
 goarch: amd64
 pkg: github.com/askeladdk/slog
 cpu: Intel(R) Core(TM) i5-5287U CPU @ 2.90GHz
-BenchmarkBaseLine-4          	 1000000	      1555 ns/op	     544 B/op	       3 allocs/op
+BenchmarkStdLogger-4          	 1000000	      1555 ns/op	     544 B/op	       3 allocs/op
 BenchmarkSlog-4              	 1000000	      3251 ns/op	     860 B/op	       5 allocs/op
 BenchmarkSlogParseFields-4   	 1000000	      4556 ns/op	     860 B/op	       5 allocs/op
 ```

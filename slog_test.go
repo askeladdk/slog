@@ -85,7 +85,7 @@ func TestParse(t *testing.T) {
 	}
 }
 
-func BenchmarkBaseLine(b *testing.B) {
+func BenchmarkStdLogger(b *testing.B) {
 	buf := bytes.NewBuffer(make([]byte, 0, 2<<20))
 	l := log.New(buf, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile)
 	b.ResetTimer()
