@@ -240,6 +240,10 @@ func isterm(w io.Writer) (term bool) {
 // NewWriter creates a new structured logging output writer.
 // The prefix and flags of the logger must not be changed afterwards.
 func NewWriter(l *log.Logger, w io.Writer) io.Writer {
+	if w == io.Discard {
+		return io.Discard
+	}
+
 	prefix, flags := l.Prefix(), l.Flags()
 	pbuf := make([]byte, 0, 256)
 	col := plain
