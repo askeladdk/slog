@@ -32,7 +32,6 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
-	"unicode/utf8"
 	"unsafe"
 )
 
@@ -45,24 +44,23 @@ const (
 	LstdFlags = log.LstdFlags | log.Lmicroseconds | log.LUTC | log.Lmsgprefix | Lcolor | Lparsefields
 )
 
+var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
+
 func scanKeyVals(s string) (i int, key, val string, quote, ok bool) {
-	var start, width int
+	var start int
 	// Skip leading spaces
-	for ; i < len(s); i += width {
-		var r rune
-		r, width = utf8.DecodeRuneInString(s[i:])
-		if !unicode.IsSpace(r) {
+	for ; i < len(s); i++ {
+		if asciiSpace[s[i]] == 0 {
 			break
 		}
 	}
 	// Scan until equals without space, marking end of key
-	for start = i; i < len(s); i += width {
-		var r rune
-		r, width = utf8.DecodeRuneInString(s[i:])
-		if unicode.IsSpace(r) {
+	for start = i; i < len(s); i++ {
+		c := s[i]
+		if asciiSpace[c] != 0 {
 			return
-		} else if r == '=' {
-			i, key = i+width, s[start:i]
+		} else if c == '=' {
+			i, key = i+1, s[start:i]
 			break
 		}
 	}
@@ -73,22 +71,18 @@ func scanKeyVals(s string) (i int, key, val string, quote, ok bool) {
 	// Scan until quote, marking end of quoted value
 	if s[i] == '"' {
 		i++
-		for start = i; i < len(s); i += width {
-			var r rune
-			r, width = utf8.DecodeRuneInString(s[i:])
-			if r == '"' {
-				i, val, quote, ok = i+width, s[start:i], true, true
+		for start = i; i < len(s); i++ {
+			if s[i] == '"' {
+				i, val, quote, ok = i+1, s[start:i], true, true
 				return
 			}
 		}
 		return
 	}
 	// Scan until space, marking end of value
-	for start = i; i < len(s); i += width {
-		var r rune
-		r, width = utf8.DecodeRuneInString(s[i:])
-		if unicode.IsSpace(r) {
-			i, val, ok = i+width, s[start:i], true
+	for start = i; i < len(s); i++ {
+		if asciiSpace[s[i]] != 0 {
+			i, val, ok = i+1, s[start:i], true
 			return
 		}
 	}
@@ -187,7 +181,7 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 	}
 
 	// date and time
-	if flags&(log.Ldate|log.Ltime|log.Lmicroseconds) != 0 {
+	if flags&(log.Ldate|log.Ltime) != 0 {
 		dst = appendKey(dst, "time", col)
 		dst = col(dst, strcol)
 		dst = append(dst, '"')
@@ -233,7 +227,7 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 	dst = appendQuote(dst, text, col)
 
 	// fields
-	if flags&Lparsefields != 0 && strings.IndexByte(text, '=') >= 0 {
+	if flags&Lparsefields != 0 && strings.IndexByte(text, '=') != -1 {
 		for len(text) > 0 {
 			i, key, val, quote, ok := scanKeyVals(text)
 			text = text[i:]
