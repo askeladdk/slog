@@ -32,6 +32,7 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 	"unsafe"
 )
 
@@ -46,48 +47,58 @@ const (
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
 
-func scanKeyVals(s string) (i int, key, val string, quote, ok bool) {
-	var start int
-	// Skip leading spaces
-	for ; i < len(s); i++ {
-		if asciiSpace[s[i]] == 0 {
-			break
+func trimLeftSpace(s string) string {
+	for i := 0; i < len(s); i++ {
+		if c := s[i]; c >= utf8.RuneSelf {
+			return strings.TrimFunc(s[i:], unicode.IsSpace)
+		} else if asciiSpace[c] == 0 {
+			return s[i:]
 		}
 	}
-	// Scan until equals without space, marking end of key
-	for start = i; i < len(s); i++ {
-		c := s[i]
-		if asciiSpace[c] != 0 {
+	return s
+}
+
+func scankey(s string) (z, key string, ok bool) {
+	var i int
+	for i = 0; i < len(s); i++ {
+		if c := s[i]; c == '=' {
+			z, key, ok = s[i+1:], s[:i], true
 			return
-		} else if c == '=' {
-			i, key = i+1, s[start:i]
+		} else if asciiSpace[c] == 1 {
 			break
 		}
 	}
-	// Check for eol
-	if i == len(s) {
-		return
+	z = s[:i]
+	return
+}
+
+func scanquote(s string) (z, val string, ok bool) {
+	if i := strings.IndexByte(s, '"'); i != -1 {
+		return s[i+1:], s[:i], true
 	}
-	// Scan until quote, marking end of quoted value
-	if s[i] == '"' {
-		i++
-		for start = i; i < len(s); i++ {
-			if s[i] == '"' {
-				i, val, quote, ok = i+1, s[start:i], true, true
-				return
-			}
-		}
-		return
-	}
-	// Scan until space, marking end of value
-	for start = i; i < len(s); i++ {
+	return
+}
+
+func scanfragment(s string) (z, val string) {
+	for i := 0; i < len(s); i++ {
 		if asciiSpace[s[i]] != 0 {
-			i, val, ok = i+1, s[start:i], true
-			return
+			return s[i:], s[:i]
 		}
 	}
-	// End of line, marking end of value
-	i, val, ok = len(s), s[start:], true
+	return "", s
+}
+
+func scanKeyVals(s string) (z, key, val string, quote, ok bool) {
+	z = trimLeftSpace(s)
+	if z, key, ok = scankey(z); !ok {
+		return
+	} else if ok = len(z) > 0; !ok {
+		return
+	} else if quote = z[0] == '"'; quote {
+		z, val, ok = scanquote(z[1:])
+		return
+	}
+	z, val = scanfragment(z)
 	return
 }
 
@@ -229,8 +240,9 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 	// fields
 	if flags&Lparsefields != 0 && strings.IndexByte(text, '=') != -1 {
 		for len(text) > 0 {
-			i, key, val, quote, ok := scanKeyVals(text)
-			text = text[i:]
+			var key, val string
+			var quote, ok bool
+			text, key, val, quote, ok = scanKeyVals(text)
 			if ok {
 				dst = appendKeyVal(dst, col, key, val, quote)
 			}
