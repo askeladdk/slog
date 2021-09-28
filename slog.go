@@ -154,7 +154,7 @@ func appendKeyVal(dst []byte, col colorFunc, key, val string, quote bool) []byte
 	switch val {
 	case "true", "false", "null":
 		return appendVal(dst, val, col)
-	case "nil":
+	case "<nil>":
 		return appendVal(dst, "null", col)
 	}
 

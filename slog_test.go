@@ -50,7 +50,7 @@ func TestParse(t *testing.T) {
 	}
 
 	var b bytes.Buffer
-	mesg := "a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=nil"
+	mesg := "a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=<nil>"
 	l := New(&b, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile|Lparsefields)
 	l.Println(mesg)
 
@@ -90,7 +90,7 @@ func BenchmarkStdLogger(b *testing.B) {
 	l := log.New(buf, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.Println("a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=nil")
+		l.Println("a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=<nil>")
 	}
 	b.StopTimer()
 }
@@ -100,7 +100,7 @@ func BenchmarkSlog(b *testing.B) {
 	l := New(buf, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.Println("a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=nil")
+		l.Println("a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=<nil>")
 	}
 	b.StopTimer()
 }
@@ -110,7 +110,7 @@ func BenchmarkSlogParseFields(b *testing.B) {
 	l := New(buf, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile|Lparsefields)
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		l.Println("a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=nil")
+		l.Println("a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=<nil>")
 	}
 	b.StopTimer()
 }
