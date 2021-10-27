@@ -34,6 +34,38 @@ func TestScanKeyVals(t *testing.T) {
 	}
 }
 
+func TestScanKeyValsLoop(t *testing.T) {
+	for _, testCase := range []struct {
+		Str string
+		Exp []string
+	}{
+		{
+			Str: "the weather=\u2601 today with a chance=\"20 percent\" of rain",
+			Exp: []string{"weather", "\u2601", "chance", "20 percent"},
+		},
+	} {
+		s := testCase.Str
+		var kvs []string
+		for len(s) > 0 {
+			var key, val string
+			var ok bool
+			if s, key, val, _, ok = scanKeyVals(s); ok {
+				kvs = append(kvs, key, val)
+			}
+		}
+
+		if len(kvs) != len(testCase.Exp) {
+			t.Fatal(testCase.Str)
+		}
+
+		for i := range testCase.Exp {
+			if testCase.Exp[i] != kvs[i] {
+				t.Fatal(testCase.Str, testCase.Exp[i], kvs[i])
+			}
+		}
+	}
+}
+
 func TestParse(t *testing.T) {
 	var struc struct {
 		Prefix  string    `json:"prfx"`

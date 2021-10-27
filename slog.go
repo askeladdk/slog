@@ -59,16 +59,15 @@ func trimLeftSpace(s string) string {
 }
 
 func scankey(s string) (z, key string, ok bool) {
-	var i int
-	for i = 0; i < len(s); i++ {
+	for i := 0; i < len(s); i++ {
 		if c := s[i]; c == '=' {
 			z, key, ok = s[i+1:], s[:i], true
 			return
 		} else if asciiSpace[c] == 1 {
-			break
+			z = s[i+1:]
+			return
 		}
 	}
-	z = s[:i]
 	return
 }
 
