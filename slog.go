@@ -251,9 +251,21 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 	return append(dst, "}\n"...)
 }
 
-type writerFunc func([]byte) (int, error)
+type logwriter struct {
+	prefix string
+	flags  int
+	buf    []byte
+	col    colorFunc
+	w      io.Writer
+}
 
-func (f writerFunc) Write(p []byte) (int, error) { return f(p) }
+func (l *logwriter) Write(p []byte) (int, error) {
+	l.buf = parselog(l.buf[:0], l.col, zcstring(p), l.prefix, l.flags)
+	if _, err := l.w.Write(l.buf); err != nil {
+		return 0, err
+	}
+	return len(p), nil
+}
 
 func zcstring(p []byte) string { return *(*string)(unsafe.Pointer(&p)) }
 
@@ -272,21 +284,18 @@ func NewWriter(w io.Writer, l *log.Logger) io.Writer {
 		return io.Discard
 	}
 
-	prefix, flags := l.Prefix(), l.Flags()
-	pbuf := make([]byte, 0, 256)
-	col := plain
+	var lw logwriter
+	lw.prefix = l.Prefix()
+	lw.flags = l.Flags()
+	lw.buf = make([]byte, 0, 256)
+	lw.col = plain
+	lw.w = w
 
 	if l.Flags()&Lcolor != 0 && isterm(w) {
-		col = color
+		lw.col = color
 	}
 
-	return writerFunc(func(p []byte) (int, error) {
-		pbuf = parselog(pbuf[:0], col, zcstring(p), prefix, flags)
-		if _, err := w.Write(pbuf); err != nil {
-			return 0, err
-		}
-		return len(p), nil
-	})
+	return &lw
 }
 
 // New creates a new log.Logger that produces structured logs.
