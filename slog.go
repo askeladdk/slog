@@ -41,8 +41,10 @@ const (
 	Lcolor = 1 << (iota + 16)
 	// Lparsefields enables parsing the message for key-value fields.
 	Lparsefields
+	// Lmessage enables the mesg field.
+	Lmessage
 	// LstdFlags defines an initial set of flags.
-	LstdFlags = log.LstdFlags | log.Lmicroseconds | log.LUTC | log.Lmsgprefix | Lcolor | Lparsefields
+	LstdFlags = log.LstdFlags | log.Lmicroseconds | log.LUTC | log.Lmsgprefix | Lcolor | Lparsefields | Lmessage
 )
 
 var asciiSpace = [256]uint8{'\t': 1, '\n': 1, '\v': 1, '\f': 1, '\r': 1, ' ': 1}
@@ -141,7 +143,6 @@ func appendInt(dst []byte, i int64) []byte {
 }
 
 func appendKeyVal(dst []byte, col colorFunc, key, val string, quote bool) []byte {
-	dst = append(dst, ',')
 	dst = appendKey(dst, key, col)
 
 	// string
@@ -174,10 +175,19 @@ func appendKeyVal(dst []byte, col colorFunc, key, val string, quote bool) []byte
 	return appendQuote(dst, val, col)
 }
 
+func appendComma(dst []byte, comma bool) ([]byte, bool) {
+	if comma {
+		dst = append(dst, ',')
+	}
+	return dst, true
+}
+
 func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte {
 	dst = append(dst, '{')
 
 	text = strings.TrimRightFunc(text, unicode.IsSpace)
+
+	var comma bool
 
 	// prefix
 	if prefix != "" && flags&log.Lmsgprefix == 0 {
@@ -186,12 +196,13 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 		if prefix != "" {
 			dst = appendKey(dst, "prfx", col)
 			dst = appendQuote(dst, prefix, col)
-			dst = append(dst, ',')
+			comma = true
 		}
 	}
 
 	// date and time
 	if flags&(log.Ldate|log.Ltime) != 0 {
+		dst, comma = appendComma(dst, comma)
 		dst = appendKey(dst, "time", col)
 		dst = col(dst, strcol)
 		dst = append(dst, '"')
@@ -214,7 +225,6 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 		}
 		dst = append(dst, '"')
 		dst = col(dst, clrcol)
-		dst = append(dst, ',')
 	}
 
 	// file name and line number
@@ -222,6 +232,7 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 		var file, line string
 		i := strings.IndexByte(text, ':')
 		file, text = text[:i], text[i+1:]
+		dst, comma = appendComma(dst, comma)
 		dst = appendKey(dst, "fnam", col)
 		dst = appendQuote(dst, file, col)
 		dst = append(dst, ',')
@@ -229,12 +240,14 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 		i = strings.IndexByte(text, ':')
 		line, text = text[:i], text[i+2:]
 		dst = appendVal(dst, line)
-		dst = append(dst, ',')
 	}
 
 	// message
-	dst = appendKey(dst, "mesg", col)
-	dst = appendQuote(dst, text, col)
+	if flags&Lmessage != 0 {
+		dst, comma = appendComma(dst, comma)
+		dst = appendKey(dst, "mesg", col)
+		dst = appendQuote(dst, text, col)
+	}
 
 	// fields
 	if flags&Lparsefields != 0 && strings.IndexByte(text, '=') != -1 {
@@ -243,6 +256,7 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 			var quote, ok bool
 			text, key, val, quote, ok = scanKeyVals(text)
 			if ok {
+				dst, comma = appendComma(dst, comma)
 				dst = appendKeyVal(dst, col, key, val, quote)
 			}
 		}

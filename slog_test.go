@@ -83,7 +83,7 @@ func TestParse(t *testing.T) {
 
 	var b bytes.Buffer
 	mesg := "a=\"hello world\" b=1337 c=true d=3.14 e=/index.html f=<nil>"
-	l := New(&b, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile|Lparsefields)
+	l := New(&b, "test: ", log.Ldate|log.Ltime|log.LUTC|log.Lmicroseconds|log.Lshortfile|Lparsefields|Lmessage)
 	l.Println(mesg)
 
 	res := b.Bytes()
@@ -113,6 +113,22 @@ func TestParse(t *testing.T) {
 	} else if struc.E != "/index.html" {
 		t.Fatal()
 	} else if struc.F != "" {
+		t.Fatal()
+	}
+}
+
+func TestNoLmessage(t *testing.T) {
+	var b bytes.Buffer
+	var m map[string]string
+	l := New(&b, "", Lparsefields)
+	l.Println("a=helloworld")
+	if err := json.Unmarshal(b.Bytes(), &m); err != nil {
+		t.Fatal(err)
+	}
+	if len(m) != 1 {
+		t.Fatal()
+	}
+	if m["a"] != "helloworld" {
 		t.Fatal()
 	}
 }
