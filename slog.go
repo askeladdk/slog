@@ -182,7 +182,7 @@ func parselog(dst []byte, col colorFunc, text, prefix string, flags int) []byte 
 	// prefix
 	if prefix != "" && flags&log.Lmsgprefix == 0 {
 		text = text[len(prefix):]
-		prefix = strings.Trim(prefix, "\t ,.:;[]")
+		prefix = strings.TrimSpace(prefix)
 		if prefix != "" {
 			dst = appendKey(dst, "prfx", col)
 			dst = appendQuote(dst, prefix, col)
